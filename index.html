@@ -422,6 +422,7 @@
 
       <div class="controls-divider"></div>
 
+      <button class="pill" id="shuffle-words">🔀 Перемешать</button>
       <button class="pill" id="clear-answers">Очистить введённое</button>
       <button class="pill warn" id="filter-hard">Сложные слова</button>
     </div>
@@ -680,6 +681,16 @@
       state.mode = btn.dataset.mode;
       render();
     });
+  });
+
+  document.getElementById("shuffle-words").addEventListener("click", function(){
+    for (var i = state.words.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var temp = state.words[i];
+      state.words[i] = state.words[j];
+      state.words[j] = temp;
+    }
+    render();
   });
 
   document.getElementById("clear-answers").addEventListener("click", function(){
