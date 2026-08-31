@@ -108,7 +108,7 @@
     color: var(--text-muted);
   }
 
-  input[type="text"]{
+  input[type="text"], textarea{
     font-family:'Work Sans', sans-serif;
     font-size:15.5px;
     padding: 11px 13px;
@@ -121,9 +121,9 @@
     width:100%;
   }
 
-  input[type="text"]::placeholder{ color:#9BAA95; }
+  input[type="text"]::placeholder, textarea::placeholder{ color:#9BAA95; }
 
-  input[type="text"]:focus-visible{
+  input[type="text"]:focus-visible, textarea:focus-visible{
     border-color: var(--accent);
     background: var(--surface);
   }
@@ -149,6 +149,13 @@
   }
   .btn:hover{ background: var(--accent-dark); }
   .btn:active{ transform: scale(.97); }
+
+  .btn-secondary{
+    background: var(--surface-alt);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+  }
+  .btn-secondary:hover{ background: var(--border); }
 
   .pill{
     border: 1.5px solid var(--border);
@@ -259,9 +266,7 @@
 
   .cell-label{ display:none; }
 
-  .de-text, .ru-text{
-    font-size:15.5px;
-  }
+  .de-text, .ru-text{ font-size:15.5px; }
   .de-text{ font-weight:560; font-family:'Fraunces', serif; color: var(--accent-dark); }
   .ru-text{ color: var(--text); }
 
@@ -356,6 +361,132 @@
   }
   footer.stats-bar .reset-link:hover{ color: var(--error-text); }
 
+  /* --- MODAL DIALOGS --- */
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background: rgba(26, 35, 28, 0.45);
+    backdrop-filter: blur(4px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 20px;
+    z-index: 100;
+    opacity:0;
+    pointer-events:none;
+    transition: opacity .2s ease;
+  }
+  .modal-overlay.open{
+    opacity:1;
+    pointer-events:auto;
+  }
+
+  .modal-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 12px 36px rgba(0,0,0,0.15);
+    width: 100%;
+    max-width: 580px;
+    padding: 28px;
+    display:flex;
+    flex-direction:column;
+    gap: 16px;
+  }
+
+  .modal-card h2{
+    margin:0;
+    font-family:'Fraunces', serif;
+    color: var(--accent-dark);
+    font-size: 24px;
+  }
+  .modal-card p{
+    margin:0;
+    font-size:14px;
+    color: var(--text-muted);
+    line-height:1.4;
+  }
+
+  .modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  /* --- FLASHCARD MODE --- */
+  .flashcard-stage{
+    perspective: 1000px;
+    width: 100%;
+    height: 240px;
+    margin: 10px 0;
+  }
+
+  .flashcard{
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+  }
+
+  .flashcard.flipped{
+    transform: rotateY(180deg);
+  }
+
+  .flashcard-front, .flashcard-back{
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--border);
+    background: var(--surface-alt);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+
+  .flashcard-back{
+    transform: rotateY(180deg);
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+
+  .flashcard-lang{
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .flashcard-word{
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    color: var(--accent-dark);
+    font-weight: 600;
+  }
+
+  .flashcard-hint{
+    position: absolute;
+    bottom: 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .fc-controls{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
   @media (max-width: 680px){
     .table-head{ display:none; }
     .table-wrap .row,
@@ -422,9 +553,11 @@
 
       <div class="controls-divider"></div>
 
+      <button class="pill" id="open-flashcards">🎴 Режим карточек</button>
       <button class="pill" id="shuffle-words">🔀 Перемешать</button>
       <button class="pill" id="clear-answers">Очистить введённое</button>
       <button class="pill warn" id="filter-hard">Сложные слова</button>
+      <button class="pill" id="open-io">📥 Экспорт / Импорт</button>
     </div>
 
     <div class="table-wrap" id="table-wrap">
@@ -443,6 +576,52 @@
     </footer>
   </div>
 
+</div>
+
+<!-- FLASHCARDS MODAL -->
+<div class="modal-overlay" id="modal-fc">
+  <div class="modal-card">
+    <h2>🎴 Карточки для повторения</h2>
+    <p>Нажмите на карточку, чтобы перевернуть её и посмотреть перевод.</p>
+    
+    <div class="flashcard-stage">
+      <div class="flashcard" id="fc-card">
+        <div class="flashcard-front">
+          <span class="flashcard-lang" id="fc-front-lang">DEUTSCH</span>
+          <div class="flashcard-word" id="fc-front-word">...</div>
+          <span class="flashcard-hint">💡 кликните для переворота</span>
+        </div>
+        <div class="flashcard-back">
+          <span class="flashcard-lang" id="fc-back-lang">РУССКИЙ</span>
+          <div class="flashcard-word" id="fc-back-word">...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fc-controls">
+      <button class="btn btn-secondary" id="fc-prev">← Назад</button>
+      <span id="fc-counter" style="font-weight:600; color:var(--text-muted);">1 / 1</span>
+      <button class="btn btn-secondary" id="fc-next">Вперёд →</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" id="fc-close">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT/EXPORT MODAL -->
+<div class="modal-overlay" id="modal-io">
+  <div class="modal-card">
+    <h2>📥 Массовый импорт и экспорт</h2>
+    <p>Вставьте список слов (каждая пара с новой строки через дефис, тире, двоеточие или знак табуляции):</p>
+    <textarea id="io-textarea" rows="10" placeholder="der Tisch - стол&#10;das Haus - дом&#10;lernen - учить"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="io-export">Экспортировать текущие</button>
+      <button class="btn" id="io-import">Импортировать списком</button>
+      <button class="btn btn-secondary" id="io-close">Отмена</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -525,7 +704,7 @@
     return val === normalize(targetFor(word)) ? "correct" : "incorrect";
   }
 
-  // ----- DOM refs -----
+  // DOM refs
   var tableBody = document.getElementById("table-body");
   var tableWrap = document.getElementById("table-wrap");
   var statsText = document.getElementById("stats-text");
@@ -645,7 +824,7 @@
     return row;
   }
 
-  // ----- controls -----
+  // --- Controls ---
   document.getElementById("add-btn").addEventListener("click", addWord);
   [inputDe, inputRu].forEach(function(el){
     el.addEventListener("keydown", function(e){
@@ -713,6 +892,116 @@
     });
     state.filterHard = false;
     render();
+  });
+
+  // --- Flashcard Mode Logic ---
+  var fcModal = document.getElementById("modal-fc");
+  var fcCard = document.getElementById("fc-card");
+  var fcFrontLang = document.getElementById("fc-front-lang");
+  var fcFrontWord = document.getElementById("fc-front-word");
+  var fcBackLang = document.getElementById("fc-back-lang");
+  var fcBackWord = document.getElementById("fc-back-word");
+  var fcCounter = document.getElementById("fc-counter");
+  var fcIndex = 0;
+
+  function updateFlashcard(){
+    if(state.words.length === 0) return;
+    fcCard.classList.remove("flipped");
+    var current = state.words[fcIndex];
+    if(state.mode === "de-ru"){
+      fcFrontLang.textContent = "DEUTSCH";
+      fcFrontWord.textContent = current.de;
+      fcBackLang.textContent = "РУССКИЙ";
+      fcBackWord.textContent = current.ru;
+    } else {
+      fcFrontLang.textContent = "РУССКИЙ";
+      fcFrontWord.textContent = current.ru;
+      fcBackLang.textContent = "DEUTSCH";
+      fcBackWord.textContent = current.de;
+    }
+    fcCounter.textContent = (fcIndex + 1) + " / " + state.words.length;
+  }
+
+  document.getElementById("open-flashcards").addEventListener("click", function(){
+    if(state.words.length === 0){
+      alert("Добавьте хотя бы одно слово для запуска карточек!");
+      return;
+    }
+    fcIndex = 0;
+    updateFlashcard();
+    fcModal.classList.add("open");
+  });
+
+  fcCard.addEventListener("click", function(){
+    fcCard.classList.toggle("flipped");
+  });
+
+  document.getElementById("fc-next").addEventListener("click", function(){
+    if(fcIndex < state.words.length - 1){
+      fcIndex++;
+      updateFlashcard();
+    }
+  });
+
+  document.getElementById("fc-prev").addEventListener("click", function(){
+    if(fcIndex > 0){
+      fcIndex--;
+      updateFlashcard();
+    }
+  });
+
+  document.getElementById("fc-close").addEventListener("click", function(){
+    fcModal.classList.remove("open");
+  });
+
+  // --- Import / Export Logic ---
+  var ioModal = document.getElementById("modal-io");
+  var ioTextarea = document.getElementById("io-textarea");
+
+  document.getElementById("open-io").addEventListener("click", function(){
+    ioTextarea.value = "";
+    ioModal.classList.add("open");
+  });
+
+  document.getElementById("io-close").addEventListener("click", function(){
+    ioModal.classList.remove("open");
+  });
+
+  document.getElementById("io-export").addEventListener("click", function(){
+    var lines = state.words.map(function(w){
+      return w.de + " - " + w.ru;
+    });
+    ioTextarea.value = lines.join("\n");
+  });
+
+  document.getElementById("io-import").addEventListener("click", function(){
+    var text = ioTextarea.value.trim();
+    if(!text) return;
+
+    var lines = text.split("\n");
+    var addedCount = 0;
+
+    lines.forEach(function(line){
+      var clean = line.trim();
+      if(!clean) return;
+      var parts = clean.split(/[-:—\t,]/);
+      if(parts.length >= 2){
+        var de = parts[0].trim();
+        var ru = parts.slice(1).join("-").trim();
+        if(de && ru){
+          state.words.push({ id: makeId(), de: de, ru: ru, answer: "", errorCount: 0, errorCounted: false });
+          addedCount++;
+        }
+      }
+    });
+
+    if(addedCount > 0){
+      alert("Успешно добавлено слов: " + addedCount);
+      ioModal.classList.remove("open");
+      render();
+    } else {
+      alert("Не удалось распознать слова. Проверьте формат: 'Слово - Перевод'");
+    }
   });
 
   render();
